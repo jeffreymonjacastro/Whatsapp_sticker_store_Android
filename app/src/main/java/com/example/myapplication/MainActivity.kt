@@ -28,6 +28,7 @@ class MainActivity : AppCompatActivity() {
             textView.text = current
         }
 
+        // Para cambiar de layout se usa un intent
         layout2Button.setOnClickListener {
             val intent = Intent(this, MainActivity2::class.java)
             startActivity(intent)
