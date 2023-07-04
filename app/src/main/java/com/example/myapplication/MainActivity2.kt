@@ -63,14 +63,14 @@ class MainActivity2 : AppCompatActivity() {
                             val nombre = jsonObject.getString("nombre") // Aquí poner las llaves del json de respuesta
                             val imageUrl = jsonObject.getString("Foto")
 
-                            val linearLayout = LinearLayout(this@MangasG)
+                            val linearLayout = LinearLayout(this@MainActivity2)
                             linearLayout.orientation = LinearLayout.VERTICAL
 
-                            val imageButton = ImageButton(this@MangasG)
+                            val imageButton = ImageButton(this@MainActivity2)
                             Picasso.get().load(imageUrl).into(imageButton)
                             linearLayout.addView(imageButton)
 
-                            val textView = TextView(this@MangasG)
+                            val textView = TextView(this@MainActivity2)
                             textView.text = nombre
                             linearLayout.addView(textView)
 
