@@ -34,5 +34,8 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        // Comments
+        // lorem ipsun dolor
+
     }
 }
