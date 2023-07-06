@@ -18,7 +18,7 @@ class MainActivity2 : AppCompatActivity() {
     private lateinit var layout1Button: Button
     private lateinit var stickersVerButton: Button
 
-    private val url = "http://10.0.2.2:6000/stickers"
+    private val url = "http://192.168.90.206:5000/stickers"
 
     private fun sendGetRequest() {
         val client = OkHttpClient.Builder()
