@@ -1,7 +1,6 @@
 package com.example.myapplication
 
 import android.content.Intent
-import android.os.AsyncTask
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -9,11 +8,10 @@ import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.net.HttpURLConnection
-import java.net.URL
+import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
     private lateinit var usernameEditText: EditText
@@ -35,61 +33,64 @@ class MainActivity : AppCompatActivity() {
             val password = passwordEditText.text.toString()
 
             if (username.isNotEmpty() && password.isNotEmpty()) {
-                val url = "http://localhost:5001/login?username=$username&password=$password"
-                LoginTask().execute(url)
+                val url = "http://localhost:5001/login"
+                val parameters = "username=$username&password=$password"
+                login(url, parameters)
             } else {
                 Toast.makeText(this@MainActivity, "Please enter username and password", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private inner class LoginTask : AsyncTask<String, Void, String>() {
+    private fun login(url: String, parameters: String) {
+        val client = OkHttpClient()
 
-        override fun onPreExecute() {
-            super.onPreExecute()
-            loadingProgressBar.visibility = View.VISIBLE
-        }
+        val request = Request.Builder()
+            .url("$url?$parameters")
+            .post(RequestBody.create("application/json".toMediaTypeOrNull(), ""))
+            .build()
 
-        override fun doInBackground(vararg params: String): String {
-            val url = params[0]
+        loadingProgressBar.visibility = View.VISIBLE
 
-            try {
-                val connection = URL(url).openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-
-                val responseCode = connection.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val inputStreamReader = InputStreamReader(connection.inputStream)
-                    val bufferedReader = BufferedReader(inputStreamReader)
-                    val response = bufferedReader.readLine()
-                    bufferedReader.close()
-                    inputStreamReader.close()
-                    return response
-                }
-            } catch (e: Exception) {
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
                 e.printStackTrace()
-            }
-
-            return ""
-        }
-
-        override fun onPostExecute(result: String) {
-            super.onPostExecute(result)
-            loadingProgressBar.visibility = View.GONE
-
-            if (result.isNotEmpty()) {
-                val jsonResponse = JSONObject(result)
-
-                if (jsonResponse.has("error")) {
-                    val errorMessage = jsonResponse.getString("error")
-                    Toast.makeText(this@MainActivity, errorMessage, Toast.LENGTH_SHORT).show()
-                } else {
-                    val intent = Intent(this@MainActivity, MainActivity2::class.java)
-                    startActivity(intent)
+                runOnUiThread {
+                    loadingProgressBar.visibility = View.GONE
+                    Toast.makeText(this@MainActivity, "Failed to connect to the server", Toast.LENGTH_SHORT).show()
                 }
-            } else {
-                Toast.makeText(this@MainActivity, "Failed to connect to the server", Toast.LENGTH_SHORT).show()
             }
-        }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (response.isSuccessful) {
+                        val jsonData = response.body?.string()
+                        jsonData?.let {
+                            val jsonResponse = JSONObject(jsonData)
+
+                            if (jsonResponse.has("error")) {
+                                val errorMessage = jsonResponse.getString("error")
+                                runOnUiThread {
+                                    loadingProgressBar.visibility = View.GONE
+                                    Toast.makeText(this@MainActivity, errorMessage, Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                runOnUiThread {
+                                    loadingProgressBar.visibility = View.GONE
+                                    val intent = Intent(this@MainActivity, MainActivity2::class.java)
+                                    startActivity(intent)
+                                }
+                            }
+                        }
+                    } else {
+                        runOnUiThread {
+                            loadingProgressBar.visibility = View.GONE
+                            Toast.makeText(this@MainActivity, "Failed to connect to the server", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        })
     }
 }
+
