@@ -1,92 +1,112 @@
 package com.example.myapplication
 
-import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.Button
-import android.widget.ImageButton
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+
 import com.squareup.picasso.Picasso
 import okhttp3.*
 import org.json.JSONArray
 import java.io.IOException
-import java.util.concurrent.TimeUnit
+
 
 class MainActivity2 : AppCompatActivity() {
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var adapter: StickerAdapter
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+    private val imageUrls = mutableListOf<String>()
 
-    private lateinit var layout1Button: Button
-    private lateinit var stickersVerButton: Button
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main2)
 
-    private val url = "http://192.168.90.206:5000/stickers"
+        recyclerView = findViewById(R.id.image_recycler_view)
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        adapter = StickerAdapter(imageUrls)
+        recyclerView.adapter = adapter
 
-    private fun sendGetRequest() {
-        val client = OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
-            .build()
+        swipeRefreshLayout = findViewById(R.id.swipe_refresh_layout)
+        swipeRefreshLayout.setOnRefreshListener {
+            fetchStickers()
+        }
+
+        fetchStickers()
+    }
+
+    private fun fetchStickers() {
+        val url = "http://localhost:5001/stickers"
+
+        val client = OkHttpClient()
 
         val request = Request.Builder()
             .url(url)
-            .get()
             .build()
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
+                // Manejo del error de la solicitud
                 e.printStackTrace()
             }
 
-            @Throws(IOException::class)
             override fun onResponse(call: Call, response: Response) {
-                val responseData = response.body?.string()
+                response.use {
+                    if (!response.isSuccessful) {
+                        // Manejo del error de respuesta
+                        return
+                    }
 
-                runOnUiThread {
-                    if (responseData != null) {
-                        val jsonArray = JSONArray(responseData)
+                    val jsonData = response.body?.string()
 
-                        val mainLayout = findViewById<LinearLayout>(R.id.main_layout)
-                        mainLayout.removeAllViews()
-
-                        for (i in 0 until jsonArray.length()) {
-                            val jsonObject = jsonArray.getJSONObject(i)
-                            val nombre = jsonObject.getString("nombre")
-                            val imageUrl = jsonObject.getString("Foto")
-
-                            val linearLayout = LinearLayout(this@MainActivity2)
-                            linearLayout.orientation = LinearLayout.VERTICAL
-
-                            val imageButton = ImageButton(this@MainActivity2)
-                            Picasso.get().load(imageUrl).into(imageButton)
-                            linearLayout.addView(imageButton)
-
-                            val textView = TextView(this@MainActivity2)
-                            textView.text = nombre
-                            linearLayout.addView(textView)
-
-                            mainLayout.addView(linearLayout)
-                        }
+                    jsonData?.let {
+                        parseStickers(jsonData)
                     }
                 }
             }
         })
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main2)
+    private fun parseStickers(jsonData: String) {
+        try {
+            val jsonArray = JSONArray(jsonData)
 
-        layout1Button = findViewById(R.id.go_to_layout1_button)
-        stickersVerButton = findViewById(R.id.stickerss_ver_btn) // Corregido el nombre del ID aquí
+            for (i in 0 until jsonArray.length()) {
+                val jsonObject = jsonArray.getJSONObject(i)
 
-        layout1Button.setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent)
+                val foto = jsonObject.getString("Foto")
+                imageUrls.add(foto)
+            }
+
+            runOnUiThread {
+                adapter.notifyDataSetChanged()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    inner class StickerAdapter(private val imageUrls: List<String>) : RecyclerView.Adapter<StickerAdapter.ViewHolder>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.activity_main2, parent, false)
+            return ViewHolder(view)
         }
 
-        stickersVerButton.setOnClickListener {
-            sendGetRequest()
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val imageUrl = imageUrls[position]
+            Picasso.get().load(imageUrl).into(holder.imageView)
+        }
+
+        override fun getItemCount(): Int {
+            return imageUrls.size
+        }
+
+        inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val imageView: ImageView = itemView.findViewById(R.id.image_recycler_view)
         }
     }
 }
-
