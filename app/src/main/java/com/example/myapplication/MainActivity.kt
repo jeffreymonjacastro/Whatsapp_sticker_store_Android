@@ -34,20 +34,24 @@ class MainActivity : AppCompatActivity() {
 
             if (username.isNotEmpty() && password.isNotEmpty()) {
                 val url = "http://localhost:5001/login"
-                val parameters = "username=$username&password=$password"
-                login(url, parameters)
+                val parameters = JSONObject()
+                parameters.put("username", username)
+                parameters.put("password", password)
+
+                login(url, parameters.toString())
             } else {
                 Toast.makeText(this@MainActivity, "Please enter username and password", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun login(url: String, parameters: String) {
+    private fun login(url: String, jsonBody: String) {
         val client = OkHttpClient()
 
+        val requestBody = RequestBody.create("application/json".toMediaTypeOrNull(), jsonBody)
         val request = Request.Builder()
-            .url("$url?$parameters")
-            .post(RequestBody.create("application/json".toMediaTypeOrNull(), ""))
+            .url(url)
+            .post(requestBody)
             .build()
 
         loadingProgressBar.visibility = View.VISIBLE
