@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
             val password = passwordEditText.text.toString()
 
             if (username.isNotEmpty() && password.isNotEmpty()) {
-                val url = "http://localhost:5001/login"
+                val url = "http://127.0.0.1:5001/login"
                 val parameters = JSONObject()
                 parameters.put("username", username)
                 parameters.put("password", password)
