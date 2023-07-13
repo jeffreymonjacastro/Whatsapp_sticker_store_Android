@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
 
@@ -48,7 +49,7 @@ class MainActivity : AppCompatActivity() {
     private fun login(url: String, jsonBody: String) {
         val client = OkHttpClient()
 
-        val requestBody = RequestBody.create("application/json".toMediaTypeOrNull(), jsonBody)
+        val requestBody = jsonBody.toRequestBody("application/json".toMediaTypeOrNull())
         val request = Request.Builder()
             .url(url)
             .post(requestBody)
@@ -57,6 +58,7 @@ class MainActivity : AppCompatActivity() {
         loadingProgressBar.visibility = View.VISIBLE
 
         client.newCall(request).enqueue(object : Callback {
+
             override fun onFailure(call: Call, e: IOException) {
                 e.printStackTrace()
                 runOnUiThread {
